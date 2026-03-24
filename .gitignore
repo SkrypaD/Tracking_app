@@ -1,0 +1,55 @@
+# ── .NET ─────────────────────────────────────────────────────────────────────
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.swp
+
+# Published output
+publish/
+out/
+
+# EF Core migrations (keep migrations folder, ignore snapshots if needed)
+# Uncomment below if you want to exclude migrations:
+# Migrations/
+
+# ── Secrets & config ──────────────────────────────────────────────────────────
+appsettings.Development.json
+appsettings.Production.json
+appsettings.*.json
+!appsettings.json
+*.pfx
+*.p12
+secrets.json
+
+# ── Node / React ──────────────────────────────────────────────────────────────
+node_modules/
+dist/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln.docstates
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
