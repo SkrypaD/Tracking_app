@@ -1,23 +1,40 @@
+// <copyright file="AppDbContext.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
 using CartridgeApp.Domain.Entities;
-//using CartridgeApp.Domain.Enums;
+
+// using CartridgeApp.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace CartridgeApp.Infrastructure.Data;
 
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public AppDbContext(DbContextOptions<AppDbContext> options)
+        : base(options)
+    {
+    }
 
-    public DbSet<Company> Companies => Set<Company>();
-    public DbSet<Building> Buildings => Set<Building>();
-    public DbSet<Office> Offices => Set<Office>();
-    public DbSet<PrinterType> PrinterTypes => Set<PrinterType>();
-    public DbSet<Printer> Printers => Set<Printer>();
-    public DbSet<CartridgeType> CartridgeTypes => Set<CartridgeType>();
-    public DbSet<Cartridge> Cartridges => Set<Cartridge>();
-    public DbSet<CartridgeAction> Actions => Set<CartridgeAction>();
-    public DbSet<Batch> Batches => Set<Batch>();
-    public DbSet<Admin> Admins => Set<Admin>();
+    public DbSet<Company> Companies => this.Set<Company>();
+
+    public DbSet<Building> Buildings => this.Set<Building>();
+
+    public DbSet<Office> Offices => this.Set<Office>();
+
+    public DbSet<PrinterType> PrinterTypes => this.Set<PrinterType>();
+
+    public DbSet<Printer> Printers => this.Set<Printer>();
+
+    public DbSet<CartridgeType> CartridgeTypes => this.Set<CartridgeType>();
+
+    public DbSet<Cartridge> Cartridges => this.Set<Cartridge>();
+
+    public DbSet<CartridgeAction> Actions => this.Set<CartridgeAction>();
+
+    public DbSet<Batch> Batches => this.Set<Batch>();
+
+    public DbSet<Admin> Admins => this.Set<Admin>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -110,14 +127,12 @@ public class AppDbContext : DbContext
         // Seed lookup data
         modelBuilder.Entity<PrinterType>().HasData(
             new PrinterType { Id = Guid.Parse("00000000-0000-0000-0000-000000000001"), Name = "Laser" },
-            new PrinterType { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = "Inkjet" }
-        );
+            new PrinterType { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = "Inkjet" });
 
         modelBuilder.Entity<CartridgeType>().HasData(
             new CartridgeType { Id = Guid.Parse("00000000-0000-0000-0000-000000000011"), Name = "Black Toner" },
             new CartridgeType { Id = Guid.Parse("00000000-0000-0000-0000-000000000012"), Name = "Color Toner" },
             new CartridgeType { Id = Guid.Parse("00000000-0000-0000-0000-000000000013"), Name = "Black Ink" },
-            new CartridgeType { Id = Guid.Parse("00000000-0000-0000-0000-000000000014"), Name = "Color Ink" }
-        );
+            new CartridgeType { Id = Guid.Parse("00000000-0000-0000-0000-000000000014"), Name = "Color Ink" });
     }
 }

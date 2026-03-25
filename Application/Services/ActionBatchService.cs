@@ -1,3 +1,7 @@
+// <copyright file="ActionBatchService.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
 using CartridgeApp.Application.DTOs;
 using CartridgeApp.Application.Interfaces;
 using CartridgeApp.Domain.Entities;
@@ -9,24 +13,43 @@ namespace CartridgeApp.Application.Services;
 
 public class ActionService : IActionService
 {
-    private readonly AppDbContext _db;
+    private readonly AppDbContext db;
 
-    public ActionService(AppDbContext db) => _db = db;
+    public ActionService(AppDbContext db) => this.db = db;
 
     public async Task<IEnumerable<ActionDto>> GetAllAsync(
         Guid? cartridgeId = null, Guid? officeId = null,
         Guid? companyId = null, DateTime? from = null, DateTime? to = null)
     {
-        var query = _db.Actions
+        var query = this.db.Actions
             .Include(a => a.Admin)
             .Include(a => a.Office)
             .AsQueryable();
 
-        if (cartridgeId.HasValue) query = query.Where(a => a.CartridgeId == cartridgeId);
-        if (officeId.HasValue)    query = query.Where(a => a.OfficeId == officeId);
-        if (companyId.HasValue)   query = query.Where(a => a.Office.CompanyId == companyId);
-        if (from.HasValue)        query = query.Where(a => a.CreatedAt >= from);
-        if (to.HasValue)          query = query.Where(a => a.CreatedAt <= to);
+        if (cartridgeId.HasValue)
+        {
+            query = query.Where(a => a.CartridgeId == cartridgeId);
+        }
+
+        if (officeId.HasValue)
+        {
+            query = query.Where(a => a.OfficeId == officeId);
+        }
+
+        if (companyId.HasValue)
+        {
+            query = query.Where(a => a.Office.CompanyId == companyId);
+        }
+
+        if (from.HasValue)
+        {
+            query = query.Where(a => a.CreatedAt >= from);
+        }
+
+        if (to.HasValue)
+        {
+            query = query.Where(a => a.CreatedAt <= to);
+        }
 
         var actions = await query.OrderByDescending(a => a.CreatedAt).ToListAsync();
         return actions.Select(MapToDto);
@@ -34,7 +57,7 @@ public class ActionService : IActionService
 
     public async Task<ActionDto> CreateAsync(CreateActionRequest request, Guid adminId)
     {
-        var cartridge = await _db.Cartridges
+        var cartridge = await this.db.Cartridges
             .Include(c => c.Printer)
             .FirstOrDefaultAsync(c => c.Id == request.CartridgeId)
             ?? throw new KeyNotFoundException("Cartridge not found.");
@@ -49,48 +72,50 @@ public class ActionService : IActionService
             PrinterId = cartridge.PrinterId,
             AdminId = adminId,
             BatchId = request.BatchId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
         };
 
         // Update cartridge printed count
         cartridge.PrintedCount = request.CurrentPrinted;
 
-        _db.Actions.Add(action);
-        await _db.SaveChangesAsync();
+        this.db.Actions.Add(action);
+        await this.db.SaveChangesAsync();
 
-        await _db.Entry(action).Reference(a => a.Admin).LoadAsync();
-        await _db.Entry(action).Reference(a => a.Office).LoadAsync();
+        await this.db.Entry(action).Reference(a => a.Admin).LoadAsync();
+        await this.db.Entry(action).Reference(a => a.Office).LoadAsync();
         return MapToDto(action);
     }
 
-    private static ActionDto MapToDto(CartridgeAction a) => new(
+    private static ActionDto MapToDto(CartridgeAction a) => new (
         a.Id, a.ActionType, a.ActionType.ToString(),
         a.CreatedAt, a.CurrentPrinted,
-        a.CartridgeId, a.OfficeId, a.Office?.Name ?? "",
-        a.PrinterId, a.AdminId, a.Admin?.Name ?? "",
+        a.CartridgeId, a.OfficeId, a.Office?.Name ?? string.Empty,
+        a.PrinterId, a.AdminId, a.Admin?.Name ?? string.Empty,
         a.BatchId);
 }
 
 public class BatchService : IBatchService
 {
-    private readonly AppDbContext _db;
-    private readonly IActionService _actionService;
+    private readonly AppDbContext db;
+    private readonly IActionService actionService;
 
     public BatchService(AppDbContext db, IActionService actionService)
     {
-        _db = db;
-        _actionService = actionService;
+        this.db = db;
+        this.actionService = actionService;
     }
 
     public async Task<IEnumerable<BatchDto>> GetAllAsync(Guid? companyId = null)
     {
-        var query = _db.Batches
+        var query = this.db.Batches
             .Include(b => b.Admin)
             .Include(b => b.Actions)
             .AsQueryable();
 
         if (companyId.HasValue)
+        {
             query = query.Where(b => b.Admin.CompanyId == companyId);
+        }
 
         var batches = await query.OrderByDescending(b => b.CreatedAt).ToListAsync();
         return batches.Select(MapToDto);
@@ -98,7 +123,7 @@ public class BatchService : IBatchService
 
     public async Task<BatchDetailDto> GetByIdAsync(Guid id)
     {
-        var batch = await GetBatchOrThrowAsync(id);
+        var batch = await this.GetBatchOrThrowAsync(id);
         return MapToDetailDto(batch);
     }
 
@@ -111,65 +136,69 @@ public class BatchService : IBatchService
             ServiceCompanyName = request.ServiceCompanyName,
             Status = BatchStatus.Sent,
             CreatedAt = DateTime.UtcNow,
-            SentAt = DateTime.UtcNow
+            SentAt = DateTime.UtcNow,
         };
 
-        _db.Batches.Add(batch);
-        await _db.SaveChangesAsync();
+        this.db.Batches.Add(batch);
+        await this.db.SaveChangesAsync();
 
         // Create a Sent action for each cartridge
         foreach (var cartridgeId in request.CartridgeIds)
         {
-            await _actionService.CreateAsync(new CreateActionRequest(
+            await this.actionService.CreateAsync(
+                new CreateActionRequest(
                 cartridgeId, ActionType.Sent, 0, batch.Id), adminId);
         }
 
-        return await GetByIdAsync(batch.Id);
+        return await this.GetByIdAsync(batch.Id);
     }
 
     public async Task<BatchDetailDto> ReceiveAsync(Guid id, ReceiveBatchRequest request, Guid adminId)
     {
-        var batch = await _db.Batches.FindAsync(id)
+        var batch = await this.db.Batches.FindAsync(id)
             ?? throw new KeyNotFoundException("Batch not found.");
 
         if (batch.Status == BatchStatus.Received)
+        {
             throw new InvalidOperationException("Batch already received.");
+        }
 
         // Create Refilled action for each returned cartridge
         foreach (var cartridgeId in request.ReceivedCartridgeIds)
         {
-            await _actionService.CreateAsync(new CreateActionRequest(
+            await this.actionService.CreateAsync(
+                new CreateActionRequest(
                 cartridgeId, ActionType.Refilled, 0, batch.Id), adminId);
         }
 
         batch.Status = BatchStatus.Received;
         batch.ReceivedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
+        await this.db.SaveChangesAsync();
 
-        return await GetByIdAsync(batch.Id);
+        return await this.GetByIdAsync(batch.Id);
     }
 
     private async Task<Batch> GetBatchOrThrowAsync(Guid id) =>
-        await _db.Batches
+        await this.db.Batches
             .Include(b => b.Admin)
             .Include(b => b.Actions).ThenInclude(a => a.Admin)
             .Include(b => b.Actions).ThenInclude(a => a.Office)
             .FirstOrDefaultAsync(b => b.Id == id)
         ?? throw new KeyNotFoundException("Batch not found.");
 
-    private static BatchDto MapToDto(Batch b) => new(
+    private static BatchDto MapToDto(Batch b) => new (
         b.Id, b.Status, b.Status.ToString(),
         b.ServiceCompanyName, b.CreatedAt, b.SentAt, b.ReceivedAt,
-        b.AdminId, b.Admin?.Name ?? "", b.Actions.Count);
+        b.AdminId, b.Admin?.Name ?? string.Empty, b.Actions.Count);
 
-    private static BatchDetailDto MapToDetailDto(Batch b) => new(
+    private static BatchDetailDto MapToDetailDto(Batch b) => new (
         b.Id, b.Status, b.Status.ToString(),
         b.ServiceCompanyName, b.CreatedAt, b.SentAt, b.ReceivedAt,
-        b.AdminId, b.Admin?.Name ?? "",
+        b.AdminId, b.Admin?.Name ?? string.Empty,
         b.Actions.Select(a => new ActionDto(
             a.Id, a.ActionType, a.ActionType.ToString(),
             a.CreatedAt, a.CurrentPrinted,
-            a.CartridgeId, a.OfficeId, a.Office?.Name ?? "",
-            a.PrinterId, a.AdminId, a.Admin?.Name ?? "",
+            a.CartridgeId, a.OfficeId, a.Office?.Name ?? string.Empty,
+            a.PrinterId, a.AdminId, a.Admin?.Name ?? string.Empty,
             a.BatchId)));
 }

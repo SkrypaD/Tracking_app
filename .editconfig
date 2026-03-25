@@ -1,0 +1,23 @@
+root = true
+
+[*.cs]
+
+# Відступи
+indent_style = space
+indent_size = 4
+
+# var usage
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+
+# naming
+dotnet_naming_rule.private_fields_should_be_camel_case.severity = warning
+
+# unused variables
+dotnet_diagnostic.CS0168.severity = warning
+
+[bin/**]
+generated_code = true
+
+[obj/**]
+generated_code = true

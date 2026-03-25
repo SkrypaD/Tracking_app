@@ -1,3 +1,7 @@
+// <copyright file="AuthService.cs" company="PlaceholderCompany">
+// Copyright (c) PlaceholderCompany. All rights reserved.
+// </copyright>
+
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -13,24 +17,26 @@ namespace CartridgeApp.Application.Services;
 
 public class AuthService : IAuthService
 {
-    private readonly AppDbContext _db;
-    private readonly IConfiguration _config;
+    private readonly AppDbContext db;
+    private readonly IConfiguration config;
 
     public AuthService(AppDbContext db, IConfiguration config)
     {
-        _db = db;
-        _config = config;
+        this.db = db;
+        this.config = config;
     }
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request)
     {
-        var admin = await _db.Admins
+        var admin = await this.db.Admins
             .Include(a => a.Company)
             .FirstOrDefaultAsync(a => a.Email == request.Email)
             ?? throw new UnauthorizedAccessException("Invalid credentials.");
 
         if (!BCrypt.Net.BCrypt.Verify(request.Password, admin.PasswordHash))
+        {
             throw new UnauthorizedAccessException("Invalid credentials.");
+        }
 
         var token = GenerateToken(admin);
         return new LoginResponse(token, admin.Name, admin.Role.ToString(), admin.CompanyId);
@@ -38,8 +44,10 @@ public class AuthService : IAuthService
 
     public async Task<AdminDto> RegisterAsync(RegisterAdminRequest request)
     {
-        if (await _db.Admins.AnyAsync(a => a.Email == request.Email))
+        if (await this.db.Admins.AnyAsync(a => a.Email == request.Email))
+        {
             throw new InvalidOperationException("Email already registered.");
+        }
 
         var admin = new Admin
         {
@@ -48,18 +56,18 @@ public class AuthService : IAuthService
             Email = request.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             Role = request.Role,
-            CompanyId = request.CompanyId
+            CompanyId = request.CompanyId,
         };
 
-        _db.Admins.Add(admin);
-        await _db.SaveChangesAsync();
+        this.db.Admins.Add(admin);
+        await this.db.SaveChangesAsync();
 
         return new AdminDto(admin.Id, admin.Name, admin.Email, admin.Role.ToString(), admin.CompanyId);
     }
 
     private string GenerateToken(Admin admin)
     {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(this.config["Jwt:Key"] !));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
@@ -68,12 +76,12 @@ public class AuthService : IAuthService
             new Claim(ClaimTypes.Email, admin.Email),
             new Claim(ClaimTypes.Name, admin.Name),
             new Claim(ClaimTypes.Role, admin.Role.ToString()),
-            new Claim("companyId", admin.CompanyId?.ToString() ?? "")
+            new Claim("companyId", admin.CompanyId?.ToString() ?? string.Empty),
         };
 
         var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Audience"],
+            issuer: this.config["Jwt:Issuer"],
+            audience: this.config["Jwt:Audience"],
             claims: claims,
             expires: DateTime.UtcNow.AddHours(8),
             signingCredentials: creds);
