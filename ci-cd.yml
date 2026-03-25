@@ -1,0 +1,154 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  DOTNET_VERSION: "8.0.x"
+  NODE_VERSION: "20.x"
+
+jobs:
+
+  # ── Backend build & test ────────────────────────────────────────────────────
+  backend:
+    name: Backend — Build & Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: cartridge_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      - name: Run tests
+        run: dotnet test --no-build -c Release --verbosity normal
+        env:
+          ConnectionStrings__Default: "Host=localhost;Port=5432;Database=cartridge_test;Username=test_user;Password=test_pass"
+          Jwt__Key: "test-secret-key-32-characters-long"
+          Jwt__Issuer: "CartridgeApp"
+          Jwt__Audience: "CartridgeApp"
+
+      - name: Publish artifact
+        if: github.ref == 'refs/heads/main'
+        run: dotnet publish -c Release -o ./publish --no-restore
+
+      - name: Upload backend artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-publish
+          path: ./publish
+          retention-days: 7
+
+  # ── Frontend build ──────────────────────────────────────────────────────────
+  frontend:
+    name: Frontend — Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: Build
+        run: cd frontend && npm run build
+
+      - name: Upload frontend artifact
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+
+  # ── Deploy to production (main branch only) ─────────────────────────────────
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-publish
+          path: ./publish
+
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: ./frontend/dist
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Pre-deployment backup
+        run: |
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "sudo -u postgres pg_dump -Fc cartridge_db > /var/backups/cartridge/db/ci_pre_$(date +%Y%m%d_%H%M%S).dump"
+
+      - name: Deploy backend
+        run: |
+          rsync -az --delete --exclude='appsettings.Production.json' \
+            ./publish/ \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/var/www/cartridge-tracker/api/
+
+      - name: Deploy frontend
+        run: |
+          rsync -az --delete ./frontend/dist/ \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/var/www/cartridge-tracker/frontend/
+
+      - name: Run migrations & restart
+        run: |
+          ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            sudo systemctl stop cartridge-tracker
+            cd /var/www/cartridge-tracker/api
+            ASPNETCORE_ENVIRONMENT=Production dotnet CartridgeApp.dll --migrate-only
+            sudo systemctl start cartridge-tracker
+            sleep 5
+            curl -sf http://localhost:5001/api/health && echo "Deploy OK" || exit 1
+          EOF
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "Deployment failed — check logs and run rollback manually."

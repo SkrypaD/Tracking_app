@@ -1,0 +1,57 @@
+version: "3.9"
+
+services:
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: cartridge_db
+      POSTGRES_USER: cartridge_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"   # localhost only — not exposed publicly
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cartridge_user -d cartridge_db"]
+      interval: 10s
+      retries: 5
+
+  api:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5001
+      ConnectionStrings__Default: >
+        Host=db;Port=5432;Database=cartridge_db;
+        Username=cartridge_user;Password=${DB_PASSWORD}
+      Jwt__Key: ${JWT_KEY}
+      Jwt__Issuer: CartridgeApp
+      Jwt__Audience: CartridgeApp
+      AppBaseUrl: ${APP_BASE_URL}
+    ports:
+      - "127.0.0.1:5001:5001"   # exposed only to nginx on host
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
+      interval: 30s
+      retries: 3
+
+  frontend:
+    image: nginx:alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./nginx.docker.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "80:80"
+      - "443:443"
+
+volumes:
+  postgres_data:
