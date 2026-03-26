@@ -1,0 +1,30 @@
+# Add this job to your existing ci-cd.yml pipeline
+  # It fails the build if any public members are missing XML documentation
+
+  docs-lint:
+    name: Documentation Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Check for missing XML documentation (CS1591)
+        run: |
+          # Build with documentation warnings treated as errors
+          WARNINGS=$(dotnet build --nologo 2>&1 | grep "CS1591" || true)
+
+          if [ -n "$WARNINGS" ]; then
+            echo "Documentation warnings found:"
+            echo "$WARNINGS"
+            echo ""
+            echo "All public members must have XML <summary> comments."
+            echo "See DOCUMENTATION.md for standards."
+            exit 1
+          fi
+
+          echo "Documentation check passed — no CS1591 warnings."

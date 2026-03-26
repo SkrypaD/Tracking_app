@@ -230,3 +230,76 @@ cd frontend && npm run build
 # Run dev environment (backend + frontend together)
 ./scripts/dev.sh
 ```
+
+
+# Documentation Standards
+
+This section defines how all contributors should document code in this project.
+
+---
+
+## What to Document
+
+| What | Required tags | When |
+|------|--------------|------|
+| Every public class | `<summary>`, `<remarks>` (if non-trivial) | Always |
+| Every public method | `<summary>`, `<param>`, `<returns>`, `<exception>` | Always |
+| Private helpers | `<summary>` (one line) | If non-obvious |
+| Architectural decisions | `docs/architecture.md` ADR entry | When making a significant design choice |
+| Business logic | `<remarks>` with state diagrams or flow descriptions | When logic is non-trivial |
+
+---
+
+## XML Comment Format (C#)
+
+Minimum for a simple method:
+```csharp
+/// <summary>Returns a cartridge by its unique identifier.</summary>
+/// <param name="id">The cartridge GUID.</param>
+/// <returns>A <see cref="CartridgeDto"/> for the requested cartridge.</returns>
+/// <exception cref="KeyNotFoundException">When no cartridge with this ID exists.</exception>
+public async Task<CartridgeDto> GetByIdAsync(Guid id) { ... }
+```
+
+For complex classes with business logic:
+```csharp
+/// <summary>One-line description.</summary>
+/// <remarks>
+/// Explain WHY this exists and HOW it fits in the system.
+/// Include state diagrams using <code> blocks when relevant.
+/// Reference related types with <see cref="RelatedClass"/>.
+/// </remarks>
+public class BatchService { ... }
+```
+
+---
+
+## Rules
+
+1. **Every new public member must have a `<summary>` before the PR is merged.**
+2. **Update the doc comment in the same commit as the code change.**
+3. **Use `<see cref="..."/>` to link related types** — keeps docs navigable.
+4. **Document the WHY, not just the WHAT.** The code already shows what it does.
+5. **Record architectural decisions** in `docs/architecture.md` as ADR entries.
+
+---
+
+## Generating Documentation
+
+See `docs/generate_docs.md` for full instructions. Quick version:
+
+```bash
+dotnet tool install -g docfx
+cd docfx && docfx --serve
+```
+
+---
+
+## Checking Documentation Quality
+
+```bash
+# Check for undocumented public members (CS1591 warnings)
+dotnet build 2>&1 | grep "CS1591"
+```
+
+Zero CS1591 warnings is the target before merging to `main`.

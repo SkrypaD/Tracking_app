@@ -7,114 +7,114 @@ using CartridgeApp.Domain.Enums;
 namespace CartridgeApp.Application.DTOs;
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
-public record LoginRequest(string email, string password);
-public record LoginResponse(string token, string name, string role, Guid? companyId);
+public record LoginRequest(string Email, string Password);
+public record LoginResponse(string Token, string Name, string Role, Guid? CompanyId);
 
 public record RegisterAdminRequest(
-    string name,
-    string email,
-    string password,
-    UserRole role,
-    Guid? companyId);
+    string Name,
+    string Email,
+    string Password,
+    UserRole Role,
+    Guid? CompanyId);
 
 // ── Company ───────────────────────────────────────────────────────────────────
-public record CompanyDto(Guid id, string name);
-public record CreateCompanyRequest(string name);
-public record UpdateCompanyRequest(string name);
+public record CompanyDto(Guid Id, string Name);
+public record CreateCompanyRequest(string Name);
+public record UpdateCompanyRequest(string Name);
 
 // ── Building ──────────────────────────────────────────────────────────────────
-public record BuildingDto(Guid id, string name, string address);
-public record CreateBuildingRequest(string name, string address);
-public record UpdateBuildingRequest(string name, string address);
+public record BuildingDto(Guid Id, string Name, string Address);
+public record CreateBuildingRequest(string Name, string Address);
+public record UpdateBuildingRequest(string Name, string Address);
 
 // ── Office ────────────────────────────────────────────────────────────────────
-public record OfficeDto(Guid id, string name, string? description, Guid companyId, string companyName, Guid buildingId, string buildingName);
-public record CreateOfficeRequest(string name, string? description, Guid companyId, Guid buildingId);
-public record UpdateOfficeRequest(string name, string? description);
+public record OfficeDto(Guid Id, string Name, string? Description, Guid CompanyId, string CompanyName, Guid BuildingId, string BuildingName);
+public record CreateOfficeRequest(string Name, string? Description, Guid CompanyId, Guid BuildingId);
+public record UpdateOfficeRequest(string Name, string? Description);
 
 // ── PrinterType ───────────────────────────────────────────────────────────────
-public record PrinterTypeDto(Guid id, string name);
-public record CreatePrinterTypeRequest(string name);
+public record PrinterTypeDto(Guid Id, string Name);
+public record CreatePrinterTypeRequest(string Name);
 
 // ── Printer ───────────────────────────────────────────────────────────────────
 public record PrinterDto(
-    Guid id, string? description, string hostIp,
-    uint printedCount, uint users, bool isLocal,
-    Guid officeId, string officeName,
-    Guid printerTypeId, string printerTypeName);
+    Guid Id, string? Description, string HostIp,
+    uint PrintedCount, uint Users, bool IsLocal,
+    Guid OfficeId, string OfficeName,
+    Guid PrinterTypeId, string PrinterTypeName);
 
 public record CreatePrinterRequest(
-    string hostIp, string? description,
-    uint users, bool isLocal,
-    Guid officeId, Guid printerTypeId);
+    string HostIp, string? Description,
+    uint Users, bool IsLocal,
+    Guid OfficeId, Guid PrinterTypeId);
 
 public record UpdatePrinterRequest(
-    string hostIp, string? description,
-    uint users, bool isLocal);
+    string HostIp, string? Description,
+    uint Users, bool IsLocal);
 
 // ── CartridgeType ─────────────────────────────────────────────────────────────
-public record CartridgeTypeDto(Guid id, string name);
-public record CreateCartridgeTypeRequest(string name);
+public record CartridgeTypeDto(Guid Id, string Name);
+public record CreateCartridgeTypeRequest(string Name);
 
 // ── Cartridge ─────────────────────────────────────────────────────────────────
 public record CartridgeDto(
-    Guid id, string? description,
-    uint printedCount, string qrCode,
-    Guid printerId, string printerHostIp,
-    Guid cartridgeTypeId, string cartridgeTypeName,
-    ActionType? lastActionType, DateTime? lastActionAt);
+    Guid Id, string? Description,
+    uint PrintedCount, string QrCode,
+    Guid PrinterId, string PrinterHostIp,
+    Guid CartridgeTypeId, string CartridgeTypeName,
+    ActionType? LastActionType, DateTime? LastActionAt);
 
 public record CreateCartridgeRequest(
-    string? description,
-    Guid printerId,
-    Guid cartridgeTypeId);
+    string? Description,
+    Guid PrinterId,
+    Guid CartridgeTypeId);
 
-public record UpdateCartridgeRequest(string? description, Guid cartridgeTypeId);
+public record UpdateCartridgeRequest(string? Description, Guid CartridgeTypeId);
 
 // ── Action ────────────────────────────────────────────────────────────────────
 public record ActionDto(
-    Guid id, ActionType actionType, string actionTypeName,
-    DateTime createdAt, uint currentPrinted,
-    Guid cartridgeId, Guid officeId, string officeName,
-    Guid printerId, Guid adminId, string adminName,
-    Guid? batchId);
+    Guid Id, ActionType ActionType, string ActionTypeName,
+    DateTime CreatedAt, uint CurrentPrinted,
+    Guid CartridgeId, Guid OfficeId, string OfficeName,
+    Guid PrinterId, Guid AdminId, string AdminName,
+    Guid? BatchId);
 
 public record CreateActionRequest(
-    Guid cartridgeId,
-    ActionType actionType,
-    uint currentPrinted,
-    Guid? batchId);
+    Guid CartridgeId,
+    ActionType ActionType,
+    uint CurrentPrinted,
+    Guid? BatchId);
 
 // ── Batch ─────────────────────────────────────────────────────────────────────
 public record BatchDto(
-    Guid id, BatchStatus status, string statusName,
-    string? serviceCompanyName,
-    DateTime createdAt, DateTime? sentAt, DateTime? receivedAt,
-    Guid adminId, string adminName,
-    int cartridgeCount);
+    Guid Id, BatchStatus Status, string StatusName,
+    string? ServiceCompanyName,
+    DateTime CreatedAt, DateTime? SentAt, DateTime? ReceivedAt,
+    Guid AdminId, string AdminName,
+    int CartridgeCount);
 
 public record BatchDetailDto(
-    Guid id, BatchStatus status, string statusName,
-    string? serviceCompanyName,
-    DateTime createdAt, DateTime? sentAt, DateTime? receivedAt,
-    Guid adminId, string adminName,
-    IEnumerable<ActionDto> actions);
+    Guid Id, BatchStatus Status, string StatusName,
+    string? ServiceCompanyName,
+    DateTime CreatedAt, DateTime? SentAt, DateTime? ReceivedAt,
+    Guid AdminId, string AdminName,
+    IEnumerable<ActionDto> Actions);
 
 public record CreateBatchRequest(
-    string? serviceCompanyName,
-    IEnumerable<Guid> cartridgeIds);  // cartridges to include
+    string? ServiceCompanyName,
+    IEnumerable<Guid> CartridgeIds);
 
 public record ReceiveBatchRequest(
-    IEnumerable<Guid> receivedCartridgeIds);  // subset that came back
+    IEnumerable<Guid> ReceivedCartridgeIds);
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 public record DashboardStatsDto(
-    int totalCartridges,
-    int cartridgesSentForRefill,
-    int cartridgesDepletedThisMonth,
-    int cartridgesIssuedThisMonth,
-    IEnumerable<CartridgeTypeStatDto> byType,
-    IEnumerable<OfficeStatDto> byOffice);
+    int TotalCartridges,
+    int CartridgesSentForRefill,
+    int CartridgesDepletedThisMonth,
+    int CartridgesIssuedThisMonth,
+    IEnumerable<CartridgeTypeStatDto> ByType,
+    IEnumerable<OfficeStatDto> ByOffice);
 
-public record CartridgeTypeStatDto(string typeName, int refillCount);
-public record OfficeStatDto(string officeName, int actionCount);
+public record CartridgeTypeStatDto(string TypeName, int RefillCount);
+public record OfficeStatDto(string OfficeName, int ActionCount);
