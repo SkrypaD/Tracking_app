@@ -124,7 +124,47 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.Company).WithMany(x => x.Admins).HasForeignKey(x => x.CompanyId).IsRequired(false).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Seed lookup data
+
+        // ── Performance indexes ────────────────────────────────────────────────
+        //
+        // These indexes were identified as necessary after profiling the three
+        // hottest queries in the application:
+        //
+        // 1. CartridgeAction.CreatedAt — used in every date-range filter on the
+        //    actions list and in the monthly stats counters (GetDashboardAsync).
+        //    Without this index, PostgreSQL performs a full sequential scan of the
+        //    actions table on every dashboard load.
+        //
+        // 2. CartridgeAction.CartridgeId + CreatedAt (composite) — the "currently
+        //    sent" subquery in StatsService orders actions per cartridge by date.
+        //    A composite index lets PostgreSQL satisfy the WHERE + ORDER BY with
+        //    a single index-only scan instead of a sort.
+        //
+        // 3. CartridgeAction.OfficeId — used in company-scoped filters on the
+        //    actions table (GetAllAsync with companyId filter).  The OfficeId is
+        //    already denormalised onto the action row for exactly this reason.
+        //
+        // 4. Cartridge.PrinterId — used in the most common cartridge list query
+        //    (GET /api/cartridges?printerId=...).
+        modelBuilder.Entity<CartridgeAction>(e =>
+        {
+            e.HasIndex(x => x.CreatedAt)
+                .HasDatabaseName("IX_Actions_CreatedAt");
+
+            e.HasIndex(x => new { x.CartridgeId, x.CreatedAt })
+                .HasDatabaseName("IX_Actions_CartridgeId_CreatedAt");
+
+            e.HasIndex(x => x.OfficeId)
+                .HasDatabaseName("IX_Actions_OfficeId");
+        });
+
+        modelBuilder.Entity<Cartridge>(e =>
+        {
+            e.HasIndex(x => x.PrinterId)
+                .HasDatabaseName("IX_Cartridges_PrinterId");
+        });
+
+                // Seed lookup data
         modelBuilder.Entity<PrinterType>().HasData(
             new PrinterType { Id = Guid.Parse("00000000-0000-0000-0000-000000000001"), Name = "Laser" },
             new PrinterType { Id = Guid.Parse("00000000-0000-0000-0000-000000000002"), Name = "Inkjet" });

@@ -4,17 +4,11 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-
-    <!-- Generate XML docs file alongside the build output.
-         This is required for DocFX to extract documentation from the assembly. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-
-    <!-- Suppress CS1591 warnings in dev builds (undocumented public members).
-         Remove this line to treat missing docs as warnings (recommended for CI). -->
-    <!-- <NoWarn>$(NoWarn);CS1591</NoWarn> -->
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Existing packages -->
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
@@ -25,6 +19,20 @@
     <PackageReference Include="QRCoder" Version="1.4.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.3.1" />
+
+    <!-- Serilog — structured logging with file sink and rolling -->
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+    <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
+    <PackageReference Include="Serilog.Enrichers.Environment" Version="2.3.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
+
+    <!-- In-memory cache for QR lookup and dashboard results -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Embed .resx localisation files -->
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\*.resx" />
   </ItemGroup>
 
 </Project>
